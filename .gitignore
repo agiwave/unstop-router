@@ -4,3 +4,6 @@ node_modules/
 *.log
 dist/
 .DS_Store
+*.key.txt
+cloudflared.exe
+*.tunnel

@@ -31,8 +31,8 @@ function markSuccess(epId: string): void {
   breaker.delete(epId);
 }
 
-/** 上游返回这些状态码时切换下一个后端（401/403 多为该后端配置错误，也切换） */
-const FAILOVER_STATUS = new Set([401, 403, 408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 527]);
+/** 上游返回这些状态码时切换下一个后端（401/403/404 多为该后端配置/模型名错误，也切换） */
+const FAILOVER_STATUS = new Set([401, 403, 404, 408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 527]);
 
 function openaiError(message: string, type = 'unstop_router_error', status = 500): Response {
   return json({ error: { message, type, code: null } }, status);
@@ -132,13 +132,29 @@ export async function handleProxy(request: Request, env: Env, ctx: ExecutionCont
     const t0 = now();
     const url = joinUrl(ep.base_url, proto.upstreamPath(path));
     const upstreamHeaders = new Headers({ 'content-type': 'application/json' });
+    // 上游模型名替换：若端点配置了上游模型名（非空），把请求 body 的 model 字段替换为它。
+    // 这样逻辑模型名（如 GLM5.3-Flash）可映射到上游真实模型名（如 glm-5.3-flash）。
+    let upstreamBody: string | undefined;
+    if (method === 'POST') {
+      if (ep.model) {
+        try {
+          const cloned = JSON.parse(bodyText);
+          cloned.model = ep.model;
+          upstreamBody = JSON.stringify(cloned);
+        } catch {
+          upstreamBody = bodyText;
+        }
+      } else {
+        upstreamBody = bodyText;
+      }
+    }
     proto.applyAuth(upstreamHeaders, ep.api_key);
 
     try {
       const resp = await fetch(url, {
         method,
         headers: upstreamHeaders,
-        body: method === 'POST' ? bodyText : undefined,
+        body: upstreamBody,
         signal: AbortSignal.timeout(ep.timeout_ms || 120000),
       });
       const latency = now() - t0;

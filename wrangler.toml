@@ -12,7 +12,7 @@ binding = "ASSETS"
 # 然后把返回的 id 替换到下面（本地 dev 无需真实 id）。
 [[kv_namespaces]]
 binding = "KV"
-id = "00000000000000000000000000000000"
+id = "24f3efa629b64907a264fc6a26369017"
 
 [observability]
 enabled = true
