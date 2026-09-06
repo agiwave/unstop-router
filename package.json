@@ -1,0 +1,18 @@
+{
+  "name": "unstop-router",
+  "version": "0.1.0",
+  "description": "Unstop Router — self-healing AI gateway on Cloudflare Workers. One API key, many models, automatic failover across upstream LLM providers.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "mock": "node scripts/mock-upstream.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5",
+    "typescript": "^5",
+    "wrangler": "^4"
+  }
+}

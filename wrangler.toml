@@ -1,0 +1,18 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "unstop-router"
+main = "src/index.ts"
+compatibility_date = "2026-01-15"
+
+# 前端静态资源（首页 / 管理控制台）
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# KV 存储：先运行 `npx wrangler kv namespace create KV`，
+# 然后把返回的 id 替换到下面（本地 dev 无需真实 id）。
+[[kv_namespaces]]
+binding = "KV"
+id = "00000000000000000000000000000000"
+
+[observability]
+enabled = true

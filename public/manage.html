@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unstop Router · 管理控制台</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand small"><span class="logo">⇄</span><span>Unstop Router</span></div>
+    <div class="topbar-info">
+      <span id="key-badge" class="badge mono hidden"></span>
+      <button id="btn-copy-base" class="ghost small hidden">复制接入地址</button>
+      <button id="btn-logout" class="ghost small hidden">退出</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- 未持有 Key 时的入口 -->
+    <section id="key-gate" class="card hidden">
+      <h2>请输入 API Key 进入管理</h2>
+      <label for="gate-key">API Key</label>
+      <input id="gate-key" placeholder="sk-uns-..." autocomplete="off">
+      <button id="btn-gate-enter" class="primary">进入管理页面</button>
+      <p id="gate-err" class="err hidden"></p>
+      <p class="hint">还没有 Key？<a href="/">去首页生成 →</a></p>
+    </section>
+
+    <div id="app" class="hidden">
+      <section class="grid">
+        <div class="card">
+          <h2>概览</h2>
+          <dl class="kv" id="overview"></dl>
+          <div class="codeblock" id="curl-example"></div>
+        </div>
+        <div class="card">
+          <h2>用量（近 14 天）</h2>
+          <table id="stats-days"></table>
+          <h2>最近请求</h2>
+          <table id="stats-recent"></table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="row-between">
+          <h2>模型与后端服务</h2>
+          <div class="inline-form">
+            <input id="new-model-name" placeholder="新逻辑模型名，如 gpt-4o-mini" maxlength="128">
+            <button id="btn-add-model" class="primary" style="width:auto;margin-top:0">+ 创建模型</button>
+          </div>
+        </div>
+        <p class="hint" style="margin-bottom:14px">
+          调用方请求 <code class="mono">/v1/chat/completions</code> 时使用的 <code class="mono">model</code> 字段即"逻辑模型名"；
+          每个模型可按协议配置多组真实后端，按优先级（数字越小越先）自动故障切换。
+        </p>
+        <div id="models"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- 后端服务 编辑/新增 弹窗 -->
+  <dialog id="ep-dialog">
+    <h3 id="ep-title">添加后端服务</h3>
+    <label for="f-protocol">协议</label>
+    <select id="f-protocol"></select>
+    <p class="hint" id="f-protocol-hint"></p>
+    <label for="f-base">Base URL</label>
+    <input id="f-base" placeholder="https://api.openai.com/v1">
+    <label for="f-apikey">上游 API Key</label>
+    <input id="f-apikey" placeholder="上游服务的鉴权 Key" autocomplete="off">
+    <label for="f-model">上游模型名</label>
+    <input id="f-model" placeholder="留空 = 与逻辑模型同名">
+    <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div>
+        <label for="f-priority">优先级（小=先试）</label>
+        <input id="f-priority" type="number" min="0" max="9999" value="0">
+      </div>
+      <div>
+        <label for="f-timeout">超时 (毫秒)</label>
+        <input id="f-timeout" type="number" min="1000" max="600000" value="120000">
+      </div>
+      <div>
+        <label for="f-enabled">状态</label>
+        <select id="f-enabled">
+          <option value="1">启用</option>
+          <option value="0">停用</option>
+        </select>
+      </div>
+    </div>
+    <p class="err" id="f-err"></p>
+    <div class="actions">
+      <button id="btn-ep-cancel" class="ghost">取消</button>
+      <button id="btn-ep-save" class="primary" style="margin-top:0">保存</button>
+    </div>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>

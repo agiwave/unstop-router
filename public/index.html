@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unstop Router · 永不停站的 AI 网关</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="home">
+    <div class="brand">
+      <span class="logo">⇄</span>
+      <h1>Unstop <em>Router</em></h1>
+    </div>
+    <p class="tagline">永不停站的 AI 网关 —— 一个 API Key 调用多家大模型，后端故障自动切换，调用方全程无感。</p>
+
+    <section class="card">
+      <div class="tabs">
+        <button class="tab active" data-tab="new">生成新 API Key</button>
+        <button class="tab" data-tab="exist">使用已有 API Key</button>
+      </div>
+
+      <div id="tab-new" class="tabpane">
+        <label for="new-name">备注名（可选）</label>
+        <input id="new-name" placeholder="例如：我的主力 Key" maxlength="64">
+        <button id="btn-generate" class="primary">生成 API Key</button>
+        <div id="new-result" class="hidden">
+          <p class="warn">⚠️ 请立即复制保存，完整 Key 仅显示这一次（服务器只存哈希）。</p>
+          <div class="keybox">
+            <code id="new-key"></code>
+            <button id="btn-copy-key" class="small">复制</button>
+          </div>
+          <button id="btn-enter" class="primary">进入管理页面 →</button>
+        </div>
+      </div>
+
+      <div id="tab-exist" class="tabpane hidden">
+        <label for="exist-key">API Key</label>
+        <input id="exist-key" placeholder="sk-uns-..." autocomplete="off">
+        <button id="btn-verify" class="primary">验证并进入管理页面</button>
+        <p id="exist-err" class="err hidden"></p>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="feature">
+        <h3>🔁 自动故障切换</h3>
+        <p>某个后端超时、宕机、限流时，自动切到下一个可用后端，调用方无需关心哪些服务可用 —— 这就是 Unstop 的意义。</p>
+      </div>
+      <div class="feature">
+        <h3>🧩 多模型多后端</h3>
+        <p>每个 API Key 下可创建多个逻辑模型；每个模型可按协议（OpenAI 兼容 / Anthropic 兼容等）配置多组真实服务。</p>
+      </div>
+      <div class="feature">
+        <h3>⚡ OpenAI 兼容接入</h3>
+        <p>标准 <code>/v1/chat/completions</code> 接口与 SSE 流式透传，现有 SDK 只需改 base_url 和 key 即可迁移。</p>
+      </div>
+    </section>
+
+    <footer>Deploy on Cloudflare Workers + D1 · <a href="https://github.com/agiwave/unstop-router" target="_blank" rel="noreferrer">GitHub</a></footer>
+  </main>
+  <script src="/home.js"></script>
+</body>
+</html>
