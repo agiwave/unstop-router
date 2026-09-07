@@ -3,6 +3,12 @@ name = "unstop-router"
 main = "src/index.ts"
 compatibility_date = "2026-01-15"
 
+# 自定义域名（绑定在账号管理的 hw365.top zone 下）
+routes = [
+  { pattern = "usrouter.hw365.top", custom_domain = true }
+]
+workers_dev = true
+
 # 前端静态资源（首页 / 管理控制台）
 [assets]
 directory = "./public"

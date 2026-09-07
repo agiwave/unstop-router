@@ -82,6 +82,17 @@ npm run deploy                           # 部署
 ```
 
 部署完成后访问 `https://unstop-router.<你的子域>.workers.dev` 即可使用。
+
+**绑定自定义域名**：在 `wrangler.toml` 的 `routes` 中声明即可（要求域名 zone 已托管在本账号）：
+
+```toml
+routes = [
+  { pattern = "usrouter.your-domain.com", custom_domain = true }
+]
+```
+
+部署后 Cloudflare 会自动创建 DNS 记录与证书。示例：`https://usrouter.hw365.top`。
+
 也可推送代码到 GitHub 后，在仓库/Cloudflare 中配置 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID` 两个 Secret，由 `.github/workflows/deploy.yml` 自动部署。
 
 ## 使用指南
