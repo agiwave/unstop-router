@@ -20,6 +20,7 @@
 - **⚡ OpenAI 兼容**：`/v1/chat/completions`、`/v1/completions`、`/v1/embeddings`、`/v1/models`，SSE 流式原样透传，现有 SDK 只改 `base_url` 和 `api_key` 即可迁移
 - **🧪 连通性测试**：控制台一键对任意后端发起真实小请求，验证配置
 - **📊 用量统计**：按天成功/失败计数、平均延迟、最近请求记录（KV 分桶存储）
+- **🔐 白名单访问控制**：KV 中维护授权 Key 列表，只有白名单里的 Key 才能登录管理后台与调用代理 API；白名单为空时不限制
 - **🚀 零数据库运维**：全部状态存 Cloudflare KV，Key 本身就是存储主键，无需建表
 
 ## 项目结构
@@ -50,6 +51,7 @@ usrouter/
 |---|---|---|
 | `sk-uns-xxxx...`（Key 本身） | `{name, prefix, created_at, models: {模型名: {created_at, endpoints: [...]}}}` | 该 Key 的全部配置，一次读取即可完成鉴权与路由 |
 | `stats:<apikey>:<YYYY-MM-DD>` | `{total, ok, failed, latency_sum, recent[≤50]}` | 按天分桶统计（避免同 key 高频写被 KV 限流） |
+| `__whitelist__` | `["sk-uns-xxx", "sk-uns-yyy"]` | 授权 Key 白名单；为空/不存在时不限制，有值则只允许列表中的 Key 访问 |
 
 > 说明：KV 对同一 Key 的写入约 1 次/秒。代理请求路径只读配置；统计在进程内聚合、每 2 秒批量落盘一次（best-effort）。把 API Key 明文作为 KV 主键意味着拿到 KV 读权限即可看到 Key——KV 仅限你的账号与 Worker 访问，个人自用场景可接受；如需更高安全级别可自行改为存哈希。
 
@@ -104,6 +106,7 @@ routes = [
    - 上游 API Key、上游模型名（留空 = 与逻辑模型同名）、优先级、超时
    - 点「测试」验证连通性
 4. **调用**：任何 OpenAI 兼容客户端，把 `base_url` 改为 `https://<你的worker>/v1`，`api_key` 改为 `sk-uns-...`
+5. **访问控制（可选）**：控制台「访问控制」面板可管理授权 Key 白名单。添加 Key 后，只有白名单里的 Key 才能登录与调用。一键「生成并添加新 Key」可创建已授权的可用 Key
 
 ## API 参考
 
@@ -114,6 +117,9 @@ routes = [
 | POST | `/api/keys` `{name?}` | 生成新 Key（明文仅返回一次） |
 | POST | `/api/keys/verify` `{key}` | 校验 Key 是否存在 |
 | GET | `/api/bootstrap` | 概览 + 模型/后端 + 统计（控制台数据源） |
+| GET | `/api/admin/whitelist` | 获取白名单列表 |
+| POST | `/api/admin/whitelist` `{key}` | 添加 Key 到白名单 |
+| DELETE | `/api/admin/whitelist` `{key}` | 从白名单移除 Key |
 | POST | `/api/models` `{name}` | 创建逻辑模型 |
 | PUT/DELETE | `/api/models/:name` | 重命名 / 删除（含其全部后端） |
 | POST | `/api/models/:name/endpoints` | 添加后端 `{protocol, base_url, api_key?, model?, priority?, enabled?, timeout_ms?}` |

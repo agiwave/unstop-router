@@ -92,6 +92,20 @@ export interface StatsSummary {
   last_used_at: number | null;
 }
 
+/* ---------------- 访问白名单（KV key = __whitelist__） ----------------
+ * 白名单为空/不存在 → 不限制（所有存在的 key 都能访问）；
+ * 白名单有值 → 只允许列表中的 key 登录管理后台与调用代理 API。 */
+
+const WHITELIST_KEY = '__whitelist__';
+
+export async function getWhitelist(env: Env): Promise<string[]> {
+  return (await env.KV.get<string[]>(WHITELIST_KEY, 'json')) ?? [];
+}
+
+export async function saveWhitelist(env: Env, keys: string[]): Promise<void> {
+  await env.KV.put(WHITELIST_KEY, JSON.stringify(keys));
+}
+
 export async function collectStats(env: Env, apiKey: string): Promise<StatsSummary> {
   const prefix = `stats:${apiKey}:`;
   const listing = await env.KV.list({ prefix, limit: 60 });

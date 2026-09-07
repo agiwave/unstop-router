@@ -67,6 +67,7 @@ async function init() {
   bindModelForm();
   bindModelActions();
   bindEndpointDialog();
+  bindWhitelistEvents();
 
   if (!KEY) {
     $('#key-gate').classList.remove('hidden');
@@ -93,6 +94,7 @@ function enterApp() {
 async function load() {
   try {
     DATA = await api('/api/bootstrap');
+    await loadWhitelist();
     render();
   } catch (e) {
     alert('加载失败：' + e.message);
@@ -199,6 +201,85 @@ function render() {
         </div>`;
       })
       .join('') || '<p class="muted">还没有模型。在上方输入名称创建第一个逻辑模型。</p>';
+
+  renderWhitelist();
+}
+
+/* ---------------- 白名单管理 ---------------- */
+let WL_DATA = [];
+
+async function loadWhitelist() {
+  try {
+    const resp = await api('/api/admin/whitelist');
+    WL_DATA = resp.whitelist || [];
+  } catch (e) {
+    WL_DATA = [];
+  }
+}
+
+function renderWhitelist() {
+  const list = $('#wl-list');
+  if (!list) return;
+  if (WL_DATA.length === 0) {
+    list.innerHTML = '<li class="muted" style="padding:8px 0">白名单为空（不限制任何 Key）。添加 Key 后，只有列表中的 Key 才能登录与调用。</li>';
+    return;
+  }
+  list.innerHTML = WL_DATA.map((k) => {
+    const prefix = k.slice(0, 12) + '…' + k.slice(-6);
+    return `<li><span class="mono">${esc(prefix)}</span><button class="small danger" data-wl-del="${esc(k)}">删除</button></li>`;
+  }).join('');
+}
+
+async function addWhitelistKey(key) {
+  if (!key || !key.startsWith('sk-uns-')) return alert('请输入有效的 API Key');
+  try {
+    await api('/api/admin/whitelist', { method: 'POST', body: { key } });
+    await loadWhitelist();
+    renderWhitelist();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+async function removeWhitelistKey(key) {
+  if (!confirm(`从白名单移除该 Key？\n${key}\n\n移除后该 Key 将无法登录与调用。`)) return;
+  try {
+    await api('/api/admin/whitelist', { method: 'DELETE', body: { key } });
+    await loadWhitelist();
+    renderWhitelist();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+function bindWhitelistEvents() {
+  const input = $('#wl-key');
+  $('#btn-wl-add').addEventListener('click', async () => {
+    const key = input.value.trim();
+    if (!key) return;
+    await addWhitelistKey(key);
+    input.value = '';
+  });
+  if (input) {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('#btn-wl-add').click();
+    });
+  }
+  $('#btn-wl-generate').addEventListener('click', async () => {
+    try {
+      const resp = await api('/api/keys', { method: 'POST', body: { name: 'generated' } });
+      const newKey = resp.key;
+      await addWhitelistKey(newKey);
+      alert('已生成并添加到白名单：\n' + newKey + '\n\n请立即复制保存，完整 Key 仅显示这一次。');
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+  $('#wl-list').addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('button[data-wl-del]');
+    if (!btn) return;
+    await removeWhitelistKey(btn.dataset.wlDel);
+  });
 }
 
 /* ---------------- 交互：模型 ---------------- */

@@ -1,7 +1,6 @@
-import { authenticate } from './auth';
 import { recordUsage } from './kv';
 import { PROTOCOLS, joinUrl, type ProtocolDef } from './protocols';
-import type { EndpointConf, Env, UsageEntry } from './types';
+import type { AuthContext, EndpointConf, Env, UsageEntry } from './types';
 import { CORS, json, now } from './util';
 
 /**
@@ -45,11 +44,7 @@ interface AttemptInfo {
   error?: string;
 }
 
-export async function handleProxy(request: Request, env: Env, ctx: ExecutionContext, path: string): Promise<Response> {
-  const auth = await authenticate(request, env);
-  if (!auth) {
-    return openaiError('Invalid or missing API key. Create one at the Unstop Router homepage.', 'authentication_error', 401);
-  }
+export async function handleProxy(request: Request, env: Env, ctx: ExecutionContext, path: string, auth: AuthContext): Promise<Response> {
   const { key, config } = auth;
   const method = request.method;
 

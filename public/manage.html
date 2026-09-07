@@ -56,6 +56,19 @@
         </p>
         <div id="models"></div>
       </section>
+
+      <section class="card" id="whitelist-section">
+        <h2>访问控制（API Key 白名单）</h2>
+        <p class="hint" style="margin-bottom:12px">
+          只有白名单中的 API Key 才能登录管理后台与调用代理 API。白名单为空时不限制。
+        </p>
+        <div class="inline-form" style="margin-bottom:12px">
+          <input id="wl-key" placeholder="sk-uns-..." autocomplete="off" style="flex:1">
+          <button id="btn-wl-add" class="primary" style="width:auto;margin-top:0">添加</button>
+          <button id="btn-wl-generate" class="ghost small" style="width:auto;margin-top:0">+ 生成并添加新 Key</button>
+        </div>
+        <ul id="wl-list" class="wl-list"></ul>
+      </section>
     </div>
   </main>
 
@@ -95,6 +108,6 @@
     </div>
   </dialog>
 
-  <script src="/app.js?v=2"></script>
+  <script src="/app.js?v=3"></script>
 </body>
 </html>

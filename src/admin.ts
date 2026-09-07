@@ -1,5 +1,5 @@
-import { authenticate } from './auth';
-import { collectStats, putConfig } from './kv';
+import type { AuthContext } from './types';
+import { collectStats, getWhitelist, putConfig, saveWhitelist } from './kv';
 import { PROTOCOLS, testEndpoint } from './protocols';
 import type { ConfigDoc, EndpointConf, Env, ModelConf } from './types';
 import { clampInt, generateApiKey, json, keyPrefixOf, newId, now, readJson } from './util';
@@ -47,10 +47,10 @@ function findEndpoint(cfg: ConfigDoc, endpointId: string): { modelName: string; 
   return null;
 }
 
-export async function handleAdmin(request: Request, env: Env, ctx: ExecutionContext, path: string): Promise<Response> {
+export async function handleAdmin(request: Request, env: Env, ctx: ExecutionContext, path: string, auth?: AuthContext): Promise<Response> {
   const method = request.method;
 
-  // ---------- 公开接口：创建 / 校验 API Key ----------
+  // ---------- 公开接口：创建 API Key（路由层已放行，无需鉴权） ----------
   if (path === '/api/keys' && method === 'POST') {
     const body = await readJson<{ name?: string }>(request);
     const name = (body.name || '').trim().slice(0, 64) || 'default';
@@ -65,6 +65,48 @@ export async function handleAdmin(request: Request, env: Env, ctx: ExecutionCont
     return json({ key: rawKey, prefix: cfg.prefix, name }, 201);
   }
 
+  // ---------- 以下接口均需 API Key（鉴权已由路由层完成） ----------
+  if (!auth) {
+    return json({ error: { message: 'Missing or invalid API key.' } }, 401);
+  }
+  const { key, config } = auth;
+  const seg = path.split('/').filter(Boolean); // ['api', ...]
+
+  // ---------- 白名单管理 ----------
+  if (seg[0] === 'api' && seg[1] === 'admin' && seg[2] === 'whitelist') {
+    if (method === 'GET') {
+      const wl = await getWhitelist(env);
+      return json({ whitelist: wl });
+    }
+    if (method === 'POST') {
+      const body = await readJson<{ key?: string }>(request);
+      const k = (body.key || '').trim();
+      if (!k || !k.startsWith('sk-uns-')) {
+        return json({ error: { message: '无效的 API Key 格式' } }, 400);
+      }
+      const wl = await getWhitelist(env);
+      if (wl.includes(k)) {
+        return json({ error: { message: '该 Key 已在白名单中' } }, 409);
+      }
+      wl.push(k);
+      await saveWhitelist(env, wl);
+      return json({ ok: true, whitelist: wl }, 201);
+    }
+    if (method === 'DELETE') {
+      const body = await readJson<{ key?: string }>(request);
+      const k = (body.key || '').trim();
+      const wl = await getWhitelist(env);
+      const newWl = wl.filter((x) => x !== k);
+      if (newWl.length === wl.length) {
+        return json({ error: { message: '该 Key 不在白名单中' } }, 404);
+      }
+      await saveWhitelist(env, newWl);
+      return json({ ok: true, whitelist: newWl });
+    }
+    return json({ error: { message: 'Method not allowed' } }, 405);
+  }
+
+  // ---------- 校验 / 协议 / bootstrap / 模型 / 后端 / 统计 ----------
   if (path === '/api/keys/verify' && method === 'POST') {
     const body = await readJson<{ key?: string }>(request);
     const raw = (body.key || '').trim();
@@ -86,12 +128,6 @@ export async function handleAdmin(request: Request, env: Env, ctx: ExecutionCont
     });
   }
 
-  // ---------- 以下接口均需 API Key（Key 本身即定位到其配置文档） ----------
-  const auth = await authenticate(request, env);
-  if (!auth) return json({ error: { message: 'Unauthorized: missing or invalid API key' } }, 401);
-  const { key, config } = auth;
-  const seg = path.split('/').filter(Boolean); // ['api', ...]
-
   if (path === '/api/bootstrap' && method === 'GET') {
     const stats = await collectStats(env, key);
     return json({
@@ -111,7 +147,7 @@ export async function handleAdmin(request: Request, env: Env, ctx: ExecutionCont
         proxy_paths: p.proxyPaths,
       })),
       models: Object.entries(config.models)
-        .map(([name, m]) => ({ id: name, name, created_at: m.created_at, endpoints: sortedEndpoints(m) }))
+        .map(([name, m]: [string, ModelConf]) => ({ id: name, name, created_at: m.created_at, endpoints: sortedEndpoints(m) }))
         .sort((a, b) => a.created_at - b.created_at),
       stats: { days: stats.days, recent: stats.recent },
     });
@@ -198,8 +234,8 @@ export async function handleAdmin(request: Request, env: Env, ctx: ExecutionCont
       return json(found.ep);
     }
     if (seg.length === 3 && method === 'DELETE') {
-      const m = config.models[found.modelName];
-      m.endpoints = m.endpoints.filter((e) => e.id !== epId);
+      const m: ModelConf = config.models[found.modelName];
+      m.endpoints = m.endpoints.filter((e: EndpointConf) => e.id !== epId);
       await putConfig(env, key, config);
       return json({ ok: true });
     }

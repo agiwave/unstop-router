@@ -1,4 +1,4 @@
-import type { ConfigDoc, Env } from './types';
+import type { AuthContext, ConfigDoc, Env } from './types';
 import { getConfig } from './kv';
 
 function extractKey(request: Request): string | null {
@@ -10,11 +10,6 @@ function extractKey(request: Request): string | null {
   const xKey = request.headers.get('x-api-key');
   if (xKey && xKey.trim()) return xKey.trim();
   return null;
-}
-
-export interface AuthContext {
-  key: string;
-  config: ConfigDoc;
 }
 
 /**

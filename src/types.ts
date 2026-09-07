@@ -3,6 +3,12 @@ export interface Env {
   ASSETS: Fetcher;
 }
 
+/** 鉴权上下文：路由层完成鉴权后传递给 handler */
+export interface AuthContext {
+  key: string;
+  config: ConfigDoc;
+}
+
 /** 单个真实后端服务配置 */
 export interface EndpointConf {
   id: string;
