@@ -19,8 +19,10 @@ export default {
         return json({ ok: true, service: 'unstop-router', time: new Date().toISOString() });
       }
 
-      // 生成新 API Key（公开，无需鉴权）
-      if (path === '/api/keys' && request.method === 'POST') {
+      // 公开接口（无需鉴权）：生成 Key、校验 Key、获取协议列表
+      if ((path === '/api/keys' && request.method === 'POST') ||
+          (path === '/api/keys/verify' && request.method === 'POST') ||
+          (path === '/api/protocols' && request.method === 'GET')) {
         return await handleAdmin(request, env, ctx, path);
       }
 

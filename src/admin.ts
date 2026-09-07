@@ -50,7 +50,7 @@ function findEndpoint(cfg: ConfigDoc, endpointId: string): { modelName: string; 
 export async function handleAdmin(request: Request, env: Env, ctx: ExecutionContext, path: string, auth?: AuthContext): Promise<Response> {
   const method = request.method;
 
-  // ---------- 公开接口：创建 API Key（路由层已放行，无需鉴权） ----------
+  // ---------- 公开接口：创建 API Key、校验 Key、协议列表（路由层已放行，无需鉴权） ----------
   if (path === '/api/keys' && method === 'POST') {
     const body = await readJson<{ name?: string }>(request);
     const name = (body.name || '').trim().slice(0, 64) || 'default';
@@ -63,6 +63,27 @@ export async function handleAdmin(request: Request, env: Env, ctx: ExecutionCont
     };
     await putConfig(env, rawKey, cfg);
     return json({ key: rawKey, prefix: cfg.prefix, name }, 201);
+  }
+
+  if (path === '/api/keys/verify' && method === 'POST') {
+    const body = await readJson<{ key?: string }>(request);
+    const raw = (body.key || '').trim();
+    if (!raw) return json({ ok: false, error: '请输入 API Key' }, 400);
+    const cfg = await env.KV.get<ConfigDoc>(raw, 'json');
+    if (!cfg) return json({ ok: false, error: 'API Key 不存在或已失效' }, 404);
+    return json({ ok: true, name: cfg.name, prefix: cfg.prefix, created_at: cfg.created_at });
+  }
+
+  if (path === '/api/protocols' && method === 'GET') {
+    return json({
+      protocols: Object.values(PROTOCOLS).map((p) => ({
+        id: p.id,
+        label: p.label,
+        description: p.description,
+        base_url_placeholder: p.baseUrlPlaceholder,
+        proxy_paths: p.proxyPaths,
+      })),
+    });
   }
 
   // ---------- 以下接口均需 API Key（鉴权已由路由层完成） ----------
@@ -106,28 +127,7 @@ export async function handleAdmin(request: Request, env: Env, ctx: ExecutionCont
     return json({ error: { message: 'Method not allowed' } }, 405);
   }
 
-  // ---------- 校验 / 协议 / bootstrap / 模型 / 后端 / 统计 ----------
-  if (path === '/api/keys/verify' && method === 'POST') {
-    const body = await readJson<{ key?: string }>(request);
-    const raw = (body.key || '').trim();
-    if (!raw) return json({ ok: false, error: '请输入 API Key' }, 400);
-    const cfg = await env.KV.get<ConfigDoc>(raw, 'json');
-    if (!cfg) return json({ ok: false, error: 'API Key 不存在或已失效' }, 404);
-    return json({ ok: true, name: cfg.name, prefix: cfg.prefix, created_at: cfg.created_at });
-  }
-
-  if (path === '/api/protocols' && method === 'GET') {
-    return json({
-      protocols: Object.values(PROTOCOLS).map((p) => ({
-        id: p.id,
-        label: p.label,
-        description: p.description,
-        base_url_placeholder: p.baseUrlPlaceholder,
-        proxy_paths: p.proxyPaths,
-      })),
-    });
-  }
-
+  // ---------- bootstrap / 模型 / 后端 / 统计 ----------
   if (path === '/api/bootstrap' && method === 'GET') {
     const stats = await collectStats(env, key);
     return json({
