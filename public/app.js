@@ -65,6 +65,7 @@ async function init() {
   });
 
   bindModelForm();
+  bindModelActions();
   bindEndpointDialog();
 
   if (!KEY) {
@@ -198,8 +199,6 @@ function render() {
         </div>`;
       })
       .join('') || '<p class="muted">还没有模型。在上方输入名称创建第一个逻辑模型。</p>';
-
-  bindModelActions();
 }
 
 /* ---------------- 交互：模型 ---------------- */
@@ -222,7 +221,12 @@ function bindModelForm() {
 }
 
 function bindModelActions() {
-  $('#models').addEventListener('click', async (ev) => {
+  // 事件委托只需绑定一次（#models 容器本身不会被替换，innerHTML 更新后委托依然有效）。
+  // 幂等保护：防止重复调用导致监听器累积（此前每次 render() 都调用，导致点击触发多次、功能"失灵"）。
+  const container = $('#models');
+  if (container.dataset.bound === '1') return;
+  container.dataset.bound = '1';
+  container.addEventListener('click', async (ev) => {
     const btn = ev.target.closest('button[data-act]');
     if (!btn) return;
     const act = btn.dataset.act;
